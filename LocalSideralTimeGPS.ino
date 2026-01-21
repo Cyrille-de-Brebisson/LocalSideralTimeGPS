@@ -48,7 +48,7 @@ namespace CGPS {
     //$GNZDA,162304.000,14,10,2025,00,00*4B
 
     float latitude=NAN, longitude= NAN, altitude=NAN; // Will be valid once hasPosInfo is true. angles in radians, altitude in meters...
-    char latitudetxt[20], longitudetxt[20];
+    char latitudetxt[30], longitudetxt[30];
     int h, m, s, D, M, Y; // will be valid once hasTimeInfo is true. Y is 2025
     bool hasPosInfo= false, hasTimeInfo= false, talking= false;
 	bool waitGPS= false;                    // true if we are waiting on GPS init
@@ -57,16 +57,15 @@ namespace CGPS {
     static float readAngle(char *&s, int nb, char *cpy) // read an angle in ddmm.frac_part form where frac_part has an undefined length. result in rad. returns 1000 on error. s points at end of number at the end
     {
         char *start= s;
-        int d= readint(s,nb); if (d==-1) return 1000.0f;
-        int m= readint(s,2); if (m==-1) return 1000.0f;
-        float r= d+m/60.0f;
+        int d= readint(s,nb); if (d==-1) return NAN;
+        int m= readint(s,2); if (m==-1) return NAN;
+        float dec= 0.0f;
         if (*s=='.')
-        {   s++; float f= 0.1f/60.0f;
-            while (true) { int v= readint(s,1); if (v<0) break; r+= v*f; f/=10.0f; }
+        {   s++; float f= 0.1f;
+            while (true) { int v= readint(s,1); if (v<0) break; dec+= v*f; f/=10.0f; }
         }
-        memcpy(cpy, start, nb); cpy+= nb; start+= nb; *cpy++= 'd'; // degree
-        *cpy++= *start++; *cpy++= *start++; *cpy++= '\''; start++; 
-        *cpy++= *start++; *cpy++= *start++; *cpy++= '"'; memcpy(cpy, start, s-start); cpy[s-start]= 0;
+        float r= d+(m+dec)/60.0f;
+        sprintf(cpy, "%d:%d\'%.1f", d, m, dec*60.0f);
         return r;
     }
     static bool skipComa(char *&s, char *end) // find a coma and skip it. return true if they was a coma before end...
